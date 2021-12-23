@@ -13,14 +13,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.event.ContextRefreshedEvent
+import kotlin.reflect.full.functions
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "mirai",name = ["enable"],havingValue = "true" )
 @EnableConfigurationProperties(MiraiConfig::class)
 open class AutoConfigrutionClass {
-    private val log : Logger = LoggerFactory.getLogger(this.javaClass)
+
 
     @Bean
     @ConditionalOnMissingBean
@@ -28,9 +31,9 @@ open class AutoConfigrutionClass {
              return BotFactory.newBot(config.qq,config.password){
                 fileBasedDeviceInfo(config.deviceInfo)
                 protocol= BotConfiguration.MiraiProtocol.ANDROID_PHONE
-                botLoggerSupplier={
-                    log.asMiraiLogger()
-                }
+//                botLoggerSupplier={
+//                    log.asMiraiLogger()
+//                }
             }.apply { eventChannel.registerListenerHost(dispatcher) }
 
     }
@@ -40,6 +43,33 @@ open class AutoConfigrutionClass {
     @ConditionalOnMissingBean(MiraiMessageDispatcher::class)
     open fun dispatcher(): MiraiMessageDispatcher {
         return MiraiMessageDispatcher
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    open fun miraiBeanScanner():MiraiBeanListener{
+        return MiraiBeanListener()
+    }
+
+    class MiraiBeanListener : ApplicationListener<ContextRefreshedEvent> {
+
+        override fun onApplicationEvent(event: ContextRefreshedEvent) {
+            val hashMap = HashMap<Long, MiraiExClassData>()
+            event.
+            applicationContext.getBeansWithAnnotation(MiraiRouter::class.java).
+            forEach { (_, u) ->
+                val kClass = u::class
+                val functions = kClass.functions
+                functions.forEach { kf ->
+                    kf.annotations.forEach {
+                        if (it is Group) {
+                            hashMap[it.group] = MiraiExClassData(u, kf)
+                        }
+                    }
+                }
+            }
+            MiraiMessageDispatcher.map=hashMap
+        }
     }
 }
 @ConfigurationProperties(prefix = "mirai")
