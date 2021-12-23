@@ -34,3 +34,19 @@ kt
 ```java
  bot.login();
 ```
+
+## 5.添加注解使用
+
+```kotlin
+@MiraiRouter
+class aa {
+    @Autowired
+    lateinit var bot: Bot
+
+   //群号
+    @Group(100000L)
+    fun handler(groupMessageEvent: GroupMessageEvent) {
+        println("message"+groupMessageEvent.message)
+    }
+}
+```
