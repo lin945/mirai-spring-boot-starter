@@ -1,4 +1,4 @@
-# mirai-spring-boot-stater
+# mirai-spring-boot-starter
 一个简单的stater for mirai 机器人
 
 
